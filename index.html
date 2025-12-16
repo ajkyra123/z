@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Money Clicker Incremental Clone</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; font-family:Arial,sans-serif; background:#0e0e0e; color:white; text-align:center; }
+h1 { margin:10px; }
+#top { background:#1c1c1c; padding:10px; font-size:14px; }
+.big-btn { margin:15px auto; padding:30px; width:80%; max-width:360px; font-size:28px; border-radius:15px; border:none; background:#2ecc71; cursor:pointer; }
+.tabs { display:flex; justify-content:center; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.tabs button { padding:8px 12px; background:#333; color:white; border:none; border-radius:8px; cursor:pointer; }
+.tabs button.active { background:#3498db; }
+.shop { display:none; padding:10px; }
+.shop.active { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+.card { background:#222; padding:15px; border-radius:12px; }
+.card button { width:100%; padding:10px; margin-top:8px; border:none; border-radius:8px; cursor:pointer; background:#27ae60; color:white; }
+.rebirth-btn { background:#e67e22 !important; }
+.locked { opacity:0.4; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<h1>Money Clicker Incremental Clone</h1>
+
+<div id="top">
+💰 Money: <span id="money">0</span> | 🖱 Click: <span id="clickStat">1</span> | ⚙ Auto/sec: <span id="autoStat">0</span> | ✖ Multi: <span id="multiStat">1x</span> | 🔁 Rebirths: <span id="rebirths">0</span> | 💎 Tokens: <span id="rbTokens">0</span>
+</div>
+
+<button class="big-btn" onclick="clickMoney()">CLICK</button>
+
+<div class="tabs">
+  <button class="active" onclick="openTab('clickTab')">Click</button>
+  <button onclick="openTab('autoTab')">Auto</button>
+  <button onclick="openTab('boostTab')">Boosts</button>
+  <button onclick="openTab('rebirthTab')">Rebirth</button>
+  <button onclick="openTab('skillTab')">Skills</button>
+  <button id="extraTabBtn" onclick="openTab('extraTab')" class="locked">Extra</button>
+</div>
+
+<div id="clickTab" class="shop active"></div>
+<div id="autoTab" class="shop"></div>
+<div id="boostTab" class="shop"></div>
+<div id="rebirthTab" class="shop"></div>
+<div id="skillTab" class="shop"></div>
+<div id="extraTab" class="shop"></div>
+
+<script>
+// -------------------- GAME STATE --------------------
+let money=0, clickPower=1, autoIncome=0, multiplier=1;
+let rebirths=0, rebirthTokens=0, extraUnlocked=false;
+
+// -------------------- ELEMENTS --------------------
+const moneyEl=document.getElementById("money");
+const clickStat=document.getElementById("clickStat");
+const autoStat=document.getElementById("autoStat");
+const multiStat=document.getElementById("multiStat");
+const rebirthsEl=document.getElementById("rebirths");
+const rbTokensEl=document.getElementById("rbTokens");
+const extraTabBtn=document.getElementById("extraTabBtn");
+
+// -------------------- UTILITY --------------------
+function format(n){
+  const suffix=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","Ud","Dd","Td","Qad","Qid","Sxd","Spd","Od","Nd","Vg","Uv","Dv"];
+  let i=0;
+  while(n>=1000 && i<suffix.length-1){ n/=1000; i++; }
+  return n.toFixed(2).replace(/\.00$/,"")+suffix[i];
+}
+
+function updateUI(){
+  moneyEl.textContent=format(money);
+  clickStat.textContent=format(clickPower);
+  autoStat.textContent=format(autoIncome);
+  multiStat.textContent=format(multiplier)+"x";
+  rebirthsEl.textContent=rebirths;
+  rbTokensEl.textContent=rebirthTokens;
+  if(rebirthTokens>=50 && !extraUnlocked){ extraUnlocked=true; extraTabBtn.classList.remove("locked"); }
+}
+
+// -------------------- CLICK --------------------
+function clickMoney(){ money += clickPower*multiplier; updateUI(); }
+setInterval(()=>{ money += autoIncome*multiplier; updateUI(); },1000);
+
+// -------------------- GENERIC UPGRADE FUNCTION --------------------
+function makeUpgrade(tab,name,levels,baseArray,valueArray){
+  for(let i=0;i<levels;i++){
+    const c=document.createElement("div"); c.className="card";
+    const b=document.createElement("button");
+
+    let cost=baseArray[i]; // cost array
+    let value=valueArray[i]; // value increase
+
+    b.onclick=()=>{ 
+      if(money>=cost){ money-=cost; 
+        if(tab.id==='clickTab') clickPower+=value;
+        if(tab.id==='autoTab') autoIncome+=value;
+        if(tab.id==='boostTab') multiplier*=value;
+        cost*=1.5; // optional scaling
+        value*=1.5; 
+        render(); updateUI();
+      }
+    }
+
+    function render(){
+      c.innerHTML=`<h3>${name}</h3><p>Value: ${format(value)}</p><p>Cost: ${format(cost)}</p>`;
+      c.appendChild(b);
+    }
+    render(); tab.appendChild(c);
+  }
+}
+
+// -------------------- CLICK UPGRADES --------------------
+makeUpgrade(document.getElementById('clickTab'),"+ Click",[10000,100000,1000000,25000000,100000000,1000000000],[10000,100000,1000000,25000000,100000000,1000000000]);
+
+// -------------------- AUTO UPGRADES --------------------
+makeUpgrade(document.getElementById('autoTab'),"+ Auto/sec",[10000,100000,1000000,25000000,100000000,1000000000],[10000,100000,1000000,25000000,100000000,1000000000]);
+
+// -------------------- BOOSTS --------------------
+makeUpgrade(document.getElementById('boostTab'),"Multiplier",[100000,1000000,10000000,50000000,100000000,1000000000],[2,2,5,5,10,10]);
+
+// -------------------- REBIRTH --------------------
+const rCard=document.createElement("div"); rCard.className="card";
+document.getElementById('rebirthTab').appendChild(rCard);
+
+const rebButtons=[1,5,10,25]; // rebirth multiples
+function rebirthCost(){ return 1e6*Math.pow(10,rebirths); }
+
+rebButtons.forEach(mult=>{
+  const b=document.createElement("button"); 
+  b.textContent=`Rebirth x${mult}`;
+  b.onclick=()=>{
+    let totalCost=0;
+    let tempCost=rebirthCost();
+    for(let i=0;i<mult;i++){ totalCost+=tempCost; tempCost*=10; } // scaling per rebirth
+    if(money>=totalCost){
+      for(let i=0;i<mult;i++){ money-=rebirthCost(); rebirths++; rebirthTokens+=rebirths; clickPower=1; autoIncome=0; multiplier=1+rebirths; }
+      updateUI();
+    }
+  };
+  rCard.appendChild(b);
+});
+
+// -------------------- SKILL TREE --------------------
+function skill(tab,name,cost,desc,fn){
+  let bought=false;
+  const c=document.createElement("div"); c.className="card";
+  const b=document.createElement("button");
+  b.onclick=()=>{
+    if(!bought && rebirthTokens>=cost){ rebirthTokens-=cost; bought=true; fn(); render(); }
+  };
+  function render(){
+    c.innerHTML=`<h3>${name}</h3><p>${desc}</p><p>Cost: ${cost} Tokens</p>`;
+    b.textContent=bought?"Owned":"Buy"; b.disabled=bought;
+    c.appendChild(b); tab.appendChild(c); updateUI();
+  }
+  render(); tab.appendChild(c);
+}
+
+skill(document.getElementById('skillTab'),"Stronger Clicks",1,"+2 Click Power permanently",()=>clickPower+=2);
+skill(document.getElementById('skillTab'),"Auto Boost",2,"Auto income x2",()=>autoIncome*=2);
+skill(document.getElementById('skillTab'),"Money Surge",3,"Global multiplier x2",()=>multiplier*=2);
+
+// -------------------- EXTRA TAB --------------------
+const extraCard=document.createElement("div"); extraCard.className="card"; extraCard.innerHTML="<h3>Extra Content</h3><p>This tab unlocks at 50 rebirth tokens!</p>";
+document.getElementById('extraTab').appendChild(extraCard);
+
+// -------------------- TABS --------------------
+function openTab(id){
+  document.querySelectorAll(".shop").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  event.target.classList.add("active");
+}
+
+// -------------------- SAVE --------------------
+setInterval(()=>{ localStorage.setItem("ClickerSave",JSON.stringify({money,clickPower,autoIncome,multiplier,rebirths,rebirthTokens})); },3000);
+const save=JSON.parse(localStorage.getItem("ClickerSave"));
+if(save) Object.assign(this,save);
+updateUI();
+</script>
+
+</body>
+</html>
